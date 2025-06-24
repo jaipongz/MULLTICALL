@@ -46,7 +46,9 @@
             <button id="create-room-btn" class="btn btn-primary mt-2">Create Room</button>
             <button id="join-room-btn" class="btn btn-success mt-2">Join Room</button>
             <button id="leave-room-btn" class="btn btn-danger mt-2" disabled>Leave Room</button>
+            <button id="toggle-mic-btn" class="btn btn-warning mt-2">🔇 ปิดไมค์</button>
         </div>
+
     </div>
 
     <script src="https://cdn.socket.io/4.4.1/socket.io.min.js"></script>
@@ -77,7 +79,10 @@
         socket.on('room-not-found', ({ roomId }) => {
             alert(`ไม่พบห้อง ${roomId}`);
         });
-
+        document.getElementById('toggle-mic-btn').onclick = () => {
+            toggleMic();
+            document.getElementById('toggle-mic-btn').innerText = isMuted ? '🔇 ปิดไมค์' : '🎤 เปิดไมค์';
+        };
         document.getElementById('join-room-btn').onclick = () => {
             const roomId = document.getElementById('room-id').value.trim();
             const userId = document.getElementById('user-id').value.trim();
@@ -218,9 +223,9 @@
         let isMuted = false;
 
         function toggleMic() {
-        isMuted = !isMuted;
-        localStream.getAudioTracks().forEach(track => track.enabled = !isMuted);
-        socket.emit('mic-status', { roomId: currentRoomId, isMuted });
+            isMuted = !isMuted;
+            localStream.getAudioTracks().forEach(track => track.enabled = !isMuted);
+            socket.emit('mic-status', { roomId: currentRoomId, isMuted });
         }
 
         socket.on('current-members', (members) => {
