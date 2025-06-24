@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Group Call Test</title>
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet" />
+    <style>
+        #video-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 10px;
+            padding: 10px;
+        }
+
+        video {
+            width: 100%;
+            height: auto;
+            background-color: black;
+            border-radius: 10px;
+        }
+
+        #local-video {
+            border: 2px solid green;
+        }
+
+        #controls {
+            margin-top: 15px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h2 class="mt-3">Group Call Test</h2>
+
+        <div id="video-grid">
+            <video id="local-video" autoplay muted></video>
+        </div>
+
+        <div id="controls">
+            <input type="text" id="room-id" placeholder="Room ID" class="form-control mt-2" value="test-room" />
+            <input type="text" id="user-id" placeholder="Your Name" class="form-control mt-2" value="user-1" />
+
+            <button id="create-room-btn" class="btn btn-primary mt-2">Create Room</button>
+            <button id="join-room-btn" class="btn btn-success mt-2">Join Room</button>
+            <button id="leave-room-btn" class="btn btn-danger mt-2" disabled>Leave Room</button>
+        </div>
+    </div>
+
+    <script src="https://cdn.socket.io/4.4.1/socket.io.min.js"></script>
+    <script>
+        const socket = io('https://api-m-health.d.orisma.com'); // ปรับเป็น URL เซิฟเวอร์ของคุณ
+        const videoGrid = document.getElementById('video-grid');
+        const localVideo = document.getElementById('local-video');
+        let localStream;
+        let currentRoomId = null;
+
+        const peerConnections = {};
+        const videoElements = {};
+
+        document.getElementById('create-room-btn').onclick = () => {
+            const roomId = document.getElementById('room-id').value.trim();
+            if (!roomId) return alert('กรุณากรอก Room ID');
+            socket.emit('create-room', { roomId });
+        };
+
+        socket.on('room-created', ({ roomId }) => {
+            alert(`สร้างห้อง ${roomId} สำเร็จ`);
+        });
+
+        socket.on('room-exists', ({ roomId }) => {
+            alert(`ห้อง ${roomId} มีอยู่แล้ว`);
+        });
+
+        socket.on('room-not-found', ({ roomId }) => {
+            alert(`ไม่พบห้อง ${roomId}`);
+        });
+
+        document.getElementById('join-room-btn').onclick = () => {
+            const roomId = document.getElementById('room-id').value.trim();
+            const userId = document.getElementById('user-id').value.trim();
+            if (!roomId || !userId) return alert('กรุณากรอก Room ID และ User ID');
+
+            if (!localStream) {
+                navigator.mediaDevices.getUserMedia({ video: true, audio: true })
+                    .then(stream => {
+                        localStream = stream;
+                        localVideo.srcObject = stream;
+                        joinRoom(roomId, userId);
+                    })
+                    .catch(err => {
+                        console.error('Media error:', err);
+                        alert('ไม่สามารถเข้าถึงกล้องและไมค์ได้');
+                    });
+            } else {
+                joinRoom(roomId, userId);
+            }
+        };
+
+        function joinRoom(roomId, userId) {
+            socket.emit('join-call', { roomId, userId });
+            currentRoomId = roomId;
+            document.getElementById('leave-room-btn').disabled = false;
+        }
+
+        document.getElementById('leave-room-btn').onclick = () => {
+            if (!currentRoomId) return;
+            socket.emit('leave-call', { roomId: currentRoomId });
+            currentRoomId = null;
+            document.getElementById('leave-room-btn').disabled = true;
+
+            // ปิด peer connections และล้าง video streams
+            Object.values(peerConnections).forEach(pc => pc.close());
+            Object.values(videoElements).forEach(video => video.remove());
+            for (const key in peerConnections) delete peerConnections[key];
+            for (const key in videoElements) delete videoElements[key];
+
+            if (localStream) {
+                localStream.getTracks().forEach(track => track.stop());
+                localStream = null;
+                localVideo.srcObject = null;
+            }
+        };
+
+        socket.on('user-joined', ({ socketId, userId }) => {
+            console.log('User joined:', socketId, userId);
+
+            const pc = createPeerConnection(socketId);
+            peerConnections[socketId] = pc;
+
+            if (localStream) {
+                localStream.getTracks().forEach(track => pc.addTrack(track, localStream));
+            }
+
+            pc.createOffer()
+                .then(offer => pc.setLocalDescription(offer))
+                .then(() => {
+                    socket.emit('group-signal', {
+                        roomId: currentRoomId,
+                        to: socketId,
+                        from: socket.id,
+                        userId: document.getElementById('user-id').value,  // ส่งชื่อกลับไปด้วย
+                        signalData: { offer: pc.localDescription }
+                    });
+                });
+
+            createVideoFrame(socketId, userId);
+        });
+
+        function createVideoFrame(socketId, userName) {
+            if (videoElements[socketId]) return;
+
+            const container = document.createElement('div');
+            container.style.position = 'relative';
+            container.style.border = '2px solid gray';
+            container.style.borderRadius = '10px';
+            container.style.overflow = 'hidden';
+            container.style.marginBottom = '5px';
+
+            const video = document.createElement('video');
+            video.autoplay = true;
+            video.style.width = '100%';
+            video.style.height = 'auto';
+
+            const nameLabel = document.createElement('div');
+            nameLabel.innerText = userName;
+            nameLabel.style.position = 'absolute';
+            nameLabel.style.bottom = '5px';
+            nameLabel.style.left = '5px';
+            nameLabel.style.backgroundColor = 'rgba(0,0,0,0.5)';
+            nameLabel.style.color = 'white';
+            nameLabel.style.padding = '2px 5px';
+            nameLabel.style.borderRadius = '3px';
+            nameLabel.style.fontSize = '12px';
+
+            const micIcon = document.createElement('span');
+            micIcon.innerText = '🎤';
+            micIcon.style.position = 'absolute';
+            micIcon.style.top = '5px';
+            micIcon.style.right = '5px';
+            micIcon.style.backgroundColor = 'rgba(0,0,0,0.5)';
+            micIcon.style.color = 'white';
+            micIcon.style.padding = '2px 5px';
+            micIcon.style.borderRadius = '3px';
+            micIcon.style.fontSize = '12px';
+            micIcon.id = `mic-status-${socketId}`;
+
+            container.appendChild(video);
+            container.appendChild(nameLabel);
+            container.appendChild(micIcon);
+            videoGrid.appendChild(container);
+
+            videoElements[socketId] = video;
+        }
+
+        socket.on('user-left', ({ socketId }) => {
+            if (peerConnections[socketId]) {
+                peerConnections[socketId].close();
+                delete peerConnections[socketId];
+            }
+            if (videoElements[socketId]) {
+                videoElements[socketId].parentElement.remove();
+                delete videoElements[socketId];
+            }
+        });
+
+        // ตัวอย่างจำลองรับสถานะไมค์จาก server
+        socket.on('mic-status', ({ socketId, isMuted }) => {
+            const micIcon = document.getElementById(`mic-status-${socketId}`);
+            if (micIcon) {
+                micIcon.style.backgroundColor = isMuted ? 'red' : 'rgba(0,0,0,0.5)';
+                micIcon.innerText = isMuted ? '🔇' : '🎤';
+            }
+        });
+
+        let isMuted = false;
+
+        function toggleMic() {
+        isMuted = !isMuted;
+        localStream.getAudioTracks().forEach(track => track.enabled = !isMuted);
+        socket.emit('mic-status', { roomId: currentRoomId, isMuted });
+        }
+
+        socket.on('current-members', (members) => {
+            console.log('Current members in room:', members);
+            members.forEach(socketId => {
+                if (!peerConnections[socketId]) {
+                    const pc = createPeerConnection(socketId);
+                    peerConnections[socketId] = pc;
+                    if (localStream) {
+                        localStream.getTracks().forEach(track => pc.addTrack(track, localStream));
+                    }
+                }
+            });
+        });
+
+        socket.on('group-signal', async ({ from, signalData }) => {
+            let pc = peerConnections[from];
+            if (!pc) {
+                pc = createPeerConnection(from);
+                peerConnections[from] = pc;
+                if (localStream) {
+                    localStream.getTracks().forEach(track => pc.addTrack(track, localStream));
+                }
+            }
+
+            try {
+                if (signalData.offer) {
+                    await pc.setRemoteDescription(new RTCSessionDescription(signalData.offer));
+                    const answer = await pc.createAnswer();
+                    await pc.setLocalDescription(answer);
+                    socket.emit('group-signal', {
+                        roomId: currentRoomId,
+                        to: from,
+                        from: socket.id,
+                        signalData: { answer }
+                    });
+                } else if (signalData.answer) {
+                    await pc.setRemoteDescription(new RTCSessionDescription(signalData.answer));
+                } else if (signalData.candidate) {
+                    await pc.addIceCandidate(new RTCIceCandidate(signalData.candidate));
+                }
+            } catch (err) {
+                console.error('Error handling group-signal', err);
+            }
+        });
+
+        socket.on('user-left', ({ socketId }) => {
+            console.log('User left:', socketId);
+            if (peerConnections[socketId]) {
+                peerConnections[socketId].close();
+                delete peerConnections[socketId];
+            }
+            if (videoElements[socketId]) {
+                videoElements[socketId].remove();
+                delete videoElements[socketId];
+            }
+        });
+
+        function createPeerConnection(socketId) {
+            const pc = new RTCPeerConnection({
+                iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
+            });
+
+            pc.onicecandidate = event => {
+                if (event.candidate) {
+                    socket.emit('group-signal', {
+                        roomId: currentRoomId,
+                        to: socketId,
+                        from: socket.id,
+                        signalData: { candidate: event.candidate }
+                    });
+                }
+            };
+
+            pc.ontrack = event => {
+                if (!videoElements[socketId]) {
+                    const video = document.createElement('video');
+                    video.autoplay = true;
+                    videoElements[socketId] = video;
+                    videoGrid.appendChild(video);
+                }
+                videoElements[socketId].srcObject = event.streams[0];
+            };
+
+            return pc;
+        }
+    </script>
+</body>
+
+</html>
