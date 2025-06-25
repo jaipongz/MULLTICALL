@@ -289,18 +289,14 @@
             const iceConfiguration = {
                 iceServers: [
                     {
-                        urls: 'turn:uat-api-m-health.d.orisma.com:19403 ',
-                        username: 'optional-username', // Replace with actual username if needed
-                        credential: 'auth-token'       // Replace with the actual credential/token
+                        urls: 'turn:uat-api-m-health.d.orisma.com:3478',
+                        username: 'actual-username',   // ตรงนี้ห้ามเป็น placeholder ต้องเป็นของจริง
+                        credential: 'actual-auth-token'
                     },
                     {
                         urls: 'stun:stun.l.google.com:19302'
                     }
-                ],
-                iceTransportPolicy: 'all',
-                bundlePolicy: 'balanced',
-                rtcpMuxPolicy: 'require',
-                iceCandidatePoolSize: 0
+                ]
             };
             const pc = new RTCPeerConnection(iceConfiguration);
 
