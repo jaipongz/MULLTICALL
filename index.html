@@ -323,16 +323,26 @@
             const iceConfiguration = {
                 iceServers: [
                     {
-                        urls: 'turn:uat-api-m-health.d.orisma.com:3478',
-                        username: 'test', // Replace with actual username if needed
-                        credential: 'test'       // Replace with the actual credential/token
+                        urls: [
+                            'turn:uat-api-m-health.d.orisma.com:3478?transport=udp',
+                            'turn:uat-api-m-health.d.orisma.com:3478?transport=tcp',
+                            'turn:uat-api-m-health.d.orisma.com:5349?transport=udp',
+                            'turn:uat-api-m-health.d.orisma.com:5349?transport=tcp'
+                        ],
+                        username: 'test',
+                        credential: 'test'
                     },
                     {
-                        urls: 'stun:stun.l.google.com:19302'
+                        urls: [
+                            'stun:stun.l.google.com:19302',
+                            'stun:stun1.l.google.com:19302',
+                            'stun:stun2.l.google.com:19302',
+                            'stun:stun3.l.google.com:19302',
+                            'stun:stun4.l.google.com:19302'
+                        ]
                     }
                 ],
-                // iceTransportPolicy: 'all',
-                iceTransportPolicy: 'relay',
+                iceTransportPolicy: 'all',  // ให้ Browser เลือกเอง จะใช้ relay หรือ direct
                 bundlePolicy: 'balanced',
                 rtcpMuxPolicy: 'require',
                 iceCandidatePoolSize: 0
