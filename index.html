@@ -323,15 +323,15 @@
             const iceConfiguration = {
                 iceServers: [
                     {
-                        urls: 'turn:10.91.2.77:3478?transport=tcp',
-                        username: 'optional-username', // Replace with actual username if needed
-                        credential: 'auth-token'       // Replace with the actual credential/token
+                        urls: 'turn:uat-api-m-health.d.orisma.com:3478',
+                        username: 'test', // Replace with actual username if needed
+                        credential: 'test'       // Replace with the actual credential/token
                     },
                     {
                         urls: 'stun:stun.l.google.com:19302'
                     }
                 ],
-                // iceTransportPolicy: 'all',
+                iceTransportPolicy: 'all',
                 // iceTransportPolicy: 'relay',
                 bundlePolicy: 'balanced',
                 rtcpMuxPolicy: 'require',
