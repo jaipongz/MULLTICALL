@@ -302,6 +302,10 @@
 
             pc.onicecandidate = event => {
                 if (event.candidate) {
+                    console.log('EVENT CANDIDATE =>',event.candidate);
+                    console.log('from ->',socket.id);
+                    console.log('to ->',socketId);
+                    console.log('current room ->',currentRoomId);
                     socket.emit('group-signal', {
                         roomId: currentRoomId,
                         to: socketId,
