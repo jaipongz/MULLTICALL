@@ -289,23 +289,24 @@
             const iceConfiguration = {
                 iceServers: [
                     {
-                        urls: 'turn:uat-api-m-health.d.orisma.com:3478',
-                        username: 'actual-username',   // ตรงนี้ห้ามเป็น placeholder ต้องเป็นของจริง
+                        urls: 'turn:uat-api-m-health.d.orisma.com:3478?transport=tcp',
+                        username: 'actual-username',
                         credential: 'actual-auth-token'
                     },
                     {
                         urls: 'stun:stun.l.google.com:19302'
                     }
-                ]
+                ],
+                iceTransportPolicy: 'all'
             };
             const pc = new RTCPeerConnection(iceConfiguration);
 
             pc.onicecandidate = event => {
                 if (event.candidate) {
-                    console.log('EVENT CANDIDATE =>',event.candidate);
-                    console.log('from ->',socket.id);
-                    console.log('to ->',socketId);
-                    console.log('current room ->',currentRoomId);
+                    console.log('EVENT CANDIDATE =>', event.candidate);
+                    console.log('from ->', socket.id);
+                    console.log('to ->', socketId);
+                    console.log('current room ->', currentRoomId);
                     socket.emit('group-signal', {
                         roomId: currentRoomId,
                         to: socketId,
@@ -313,6 +314,10 @@
                         signalData: { candidate: event.candidate }
                     });
                 }
+            };
+
+            pc.oniceconnectionstatechange = () => {
+                console.log(`ICE Connection State (${socketId}):`, pc.iceConnectionState);
             };
 
             pc.ontrack = event => {
