@@ -292,23 +292,40 @@
 
         function createPeerConnection(socketId) {
 
+            // const iceConfiguration = {
+            //     iceServers: [
+            //         { urls: 'stun:stun.l.google.com:19302' },
+            //         { urls: 'stun:stun1.l.google.com:19302' },
+            //         { urls: 'stun:stun2.l.google.com:19302' },
+            //         { urls: 'stun:stun3.l.google.com:19302' },
+            //         { urls: 'stun:stun4.l.google.com:19302' },
+            //         {
+            //             urls: 'turn:10.91.2.77:3478?transport=tcp',
+            //             username: 'actual-username',
+            //             credential: 'actual-auth-token'
+            //         }
+            //     ],
+            //     iceTransportPolicy: 'all',
+            //     bundlePolicy: 'balanced',
+            //     rtcpMuxPolicy: 'require',
+            //     iceCandidatePoolSize: 0,
+            // };
             const iceConfiguration = {
                 iceServers: [
-                    { urls: 'stun:stun.l.google.com:19302' },
-                    { urls: 'stun:stun1.l.google.com:19302' },
-                    { urls: 'stun:stun2.l.google.com:19302' },
-                    { urls: 'stun:stun3.l.google.com:19302' },
-                    { urls: 'stun:stun4.l.google.com:19302' },
                     {
-                        urls: 'turn:10.91.2.77:3478?transport=tcp',
-                        username: 'actual-username',
-                        credential: 'actual-auth-token'
+                        urls: 'turn:10.91.2.77:3478 ',
+                        username: 'optional-username', // Replace with actual username if needed
+                        credential: 'auth-token'       // Replace with the actual credential/token
+                    },
+                    {
+                        urls: 'stun:stun.l.google.com:19302'
                     }
                 ],
-                iceTransportPolicy: 'all',
+                // iceTransportPolicy: 'all',
+                iceTransportPolicy: 'relay',
                 bundlePolicy: 'balanced',
                 rtcpMuxPolicy: 'require',
-                iceCandidatePoolSize: 0,
+                iceCandidatePoolSize: 0
             };
             const pc = new RTCPeerConnection(iceConfiguration);
 
