@@ -305,8 +305,8 @@
                         urls: 'stun:stun.l.google.com:19302'
                     }
                 ],
-                // iceTransportPolicy: 'all',
-                iceTransportPolicy: 'relay',
+                iceTransportPolicy: 'all',
+                // iceTransportPolicy: 'relay',
                 bundlePolicy: 'balanced',
                 rtcpMuxPolicy: 'require',
                 iceCandidatePoolSize: 0
@@ -327,6 +327,17 @@
                         data: event.candidate
                     });
                 }
+            };
+            pc.oniceconnectionstatechange = () => {
+                console.log('ICE Connection State:', pc.iceConnectionState);
+            };
+
+            pc.onconnectionstatechange = () => {
+                console.log('Connection State:', pc.connectionState);
+            };
+
+            pc.onsignalingstatechange = () => {
+                console.log('Signaling State:', pc.signalingState);
             };
 
 
