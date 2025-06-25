@@ -74,6 +74,7 @@
 
         document.getElementById('toggle-mic-btn').onclick = () => {
             toggleMic();
+            // เปลี่ยนข้อความปุ่มหลังจาก toggle แล้ว (สลับ logic)
             document.getElementById('toggle-mic-btn').innerText = isMuted ? '🔇 ปิดไมค์' : '🎤 เปิดไมค์';
         };
 
@@ -102,6 +103,7 @@
             socket.emit('join-call', { roomId, userId });
             currentRoomId = roomId;
             document.getElementById('leave-room-btn').disabled = false;
+            document.getElementById('join-room-btn').disabled = true; // ปิดปุ่ม join เพื่อป้องกันกดซ้ำ
         }
 
         document.getElementById('leave-room-btn').onclick = () => {
@@ -109,6 +111,7 @@
             socket.emit('leave-call', { roomId: currentRoomId });
             currentRoomId = null;
             document.getElementById('leave-room-btn').disabled = true;
+            document.getElementById('join-room-btn').disabled = false;
 
             Object.values(peerConnections).forEach(pc => pc.close());
             Object.values(videoElements).forEach(video => video.remove());
@@ -130,8 +133,8 @@
 
             localStream?.getTracks().forEach(track => pc.addTrack(track, localStream));
 
-            pc.createOffer().then(offer => {
-                pc.setLocalDescription(offer);
+            pc.createOffer().then(async offer => {
+                await pc.setLocalDescription(offer);
                 socket.emit('signal', {
                     type: 'offer',
                     roomId: currentRoomId,
@@ -151,6 +154,9 @@
                 const pc = createPeerConnection(socketId);
                 peerConnections[socketId] = pc;
                 localStream?.getTracks().forEach(track => pc.addTrack(track, localStream));
+
+                // สร้าง video frame ด้วยเผื่อ
+                createVideoFrame(socketId, socketId);
             });
         });
 
@@ -189,7 +195,9 @@
         socket.on('user-left', ({ socketId }) => {
             peerConnections[socketId]?.close();
             delete peerConnections[socketId];
-            videoElements[socketId]?.parentElement.remove();
+            if (videoElements[socketId]?.parentElement) {
+                videoElements[socketId].parentElement.remove();
+            }
             delete videoElements[socketId];
         });
 
@@ -226,6 +234,7 @@
 
             pc.onicecandidate = event => {
                 if (event.candidate) {
+                    console.log('Send ICE candidate:', event.candidate);
                     socket.emit('signal', {
                         type: 'ice-candidate',
                         roomId: currentRoomId,
@@ -298,8 +307,8 @@
 
             videoElements[socketId] = video;
         }
-
     </script>
+
 </body>
 
 </html>
