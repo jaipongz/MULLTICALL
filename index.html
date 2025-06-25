@@ -289,15 +289,20 @@
             const iceConfiguration = {
                 iceServers: [
                     {
-                        urls: 'turn:turn.uat-api-m-health.d.orisma.com:3478?transport=tcp',
+                        urls: 'turn:uat-api-m-health.d.orisma.com:19403?transport=tcp',
                         username: 'actual-username',
                         credential: 'actual-auth-token'
                     },
-                    {
-                        urls: 'stun:stun.l.google.com:19302'
-                    }
+                    { urls: 'stun:stun.l.google.com:19302'},
+                    { urls: 'stun:stun1.l.google.com:19302' },
+                    { urls: 'stun:stun2.l.google.com:19302' },
+                    { urls: 'stun:stun3.l.google.com:19302' },
+                    { urls: 'stun:stun4.l.google.com:19302' },
                 ],
-                iceTransportPolicy: 'all'
+                iceTransportPolicy: 'all',
+                bundlePolicy: 'balanced',
+                rtcpMuxPolicy: 'require',
+                iceCandidatePoolSize: 0,
             };
             const pc = new RTCPeerConnection(iceConfiguration);
 
