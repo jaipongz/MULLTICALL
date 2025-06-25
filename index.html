@@ -132,6 +132,9 @@
         socket.on('user-joined', ({ socketId, userId }) => {
             console.log('User joined:', socketId, userId);
 
+            if (socketId === socket.id) return; // ตัวเองไม่ต้องสร้างให้ตัวเอง
+            if (peerConnections[socketId]) return; // ถ้ามีอยู่แล้วไม่ต้องสร้างซ้ำ
+
             const pc = createPeerConnection(socketId);
             peerConnections[socketId] = pc;
 
@@ -146,13 +149,14 @@
                         roomId: currentRoomId,
                         to: socketId,
                         from: socket.id,
-                        userId: document.getElementById('user-id').value,  // ส่งชื่อกลับไปด้วย
+                        userId: document.getElementById('user-id').value,
                         signalData: { offer: pc.localDescription }
                     });
                 });
 
             createVideoFrame(socketId, userId);
         });
+
 
         function createVideoFrame(socketId, userName) {
             if (videoElements[socketId]) return;
@@ -231,6 +235,7 @@
         socket.on('current-members', (members) => {
             console.log('Current members in room:', members);
             members.forEach(socketId => {
+                if (socketId === socket.id) return; // กันไม่ให้ตัวเองสร้าง connection ไปหาตัวเอง
                 if (!peerConnections[socketId]) {
                     const pc = createPeerConnection(socketId);
                     peerConnections[socketId] = pc;
@@ -240,6 +245,7 @@
                 }
             });
         });
+
 
         socket.on('group-signal', async ({ from, signalData }) => {
             let pc = peerConnections[from];
@@ -288,7 +294,7 @@
 
             const iceConfiguration = {
                 iceServers: [
-                    { urls: 'stun:stun.l.google.com:19302'},
+                    { urls: 'stun:stun.l.google.com:19302' },
                     { urls: 'stun:stun1.l.google.com:19302' },
                     { urls: 'stun:stun2.l.google.com:19302' },
                     { urls: 'stun:stun3.l.google.com:19302' },
